@@ -129,7 +129,7 @@ export const AuthForm = () => {
 
         <Button type="submit">{forSignUp ? 'Sign Up' : 'Login'}</Button>
 
-        {/* <div className="relative">
+        <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
@@ -140,7 +140,7 @@ export const AuthForm = () => {
           </div>
         </div>
 
-        <ContinueWithGoogle /> */}
+        <ContinueWithGoogle />
 
         <div className="text-muted-foreground text-sm text-center pt-4">
           <span>

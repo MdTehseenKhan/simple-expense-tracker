@@ -44,25 +44,26 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'email', type: 'email' },
         password: { label: 'password', type: 'password' },
       },
-      authorize: async (credentials, req) => {
-        if (!credentials) return null
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null
 
         const user = await db.user.findUnique({
-          where: { email: credentials?.email },
+          where: { email: credentials.email },
         })
-        if (!user) return null
+        if (!user?.password) return null
 
         const isPasswordCorrect = await compare(
-          credentials?.password,
-          user?.password as string
+          credentials.password,
+          user.password
         )
-        if (isPasswordCorrect) {
-          return {
-            id: user.id,
-            email: user.email,
-          }
-        } else {
-          return null
+
+        if (!isPasswordCorrect) return null
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
         }
       },
     }),
@@ -72,25 +73,26 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          id: token.id,
-          name: token.name,
-          email: token.email,
-          image: token.picture,
-        },
+    async jwt({ token, user, account }) {
+      if (account && user) {
+        return {
+          ...token,
+          id: user.id,
+          picture: user.image,
+        }
       }
-    },
-    async jwt({ token, user }) {
+
       const dbUser = await db.user.findFirst({
         where: { email: token.email },
       })
+
       if (!dbUser) {
-        token.id = user.id
+        if (user) {
+          token.id = user.id
+        }
         return token
       }
+
       return {
         id: dbUser.id,
         name: dbUser.name,
@@ -98,11 +100,20 @@ export const authOptions: NextAuthOptions = {
         picture: dbUser.image,
       }
     },
-    async redirect() {
-      return '/'
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string
+        session.user.name = token.name
+        session.user.email = token.email
+        session.user.image = token.picture
+      }
+      return session
+    },
+    async redirect({ url, baseUrl }) {
+      return url.startsWith(baseUrl) ? url : '/dashboard'
     },
   },
-  secret: process.env.NEXTAUTH_SECRET as string,
+  secret: process.env.NEXTAUTH_SECRET,
   // debug: process.env.NODE_ENV === 'development',
 }
 
